@@ -1,0 +1,55 @@
+---
+
+- name: Ensure odoo network is created in Docker
+  community.docker.docker_network:
+    name: "{{ odoo_container_network }}"
+    driver: bridge
+
+
+- name: Ensure odoo paths exists
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: 0700
+    owner: "{{ odoo_uid }}"
+    group: "{{ odoo_gid }}"
+  with_items:
+    - {path: "{{ odoo_data_path }}", when: true}
+    - {path: "{{ odoo_base_path }}/conf", when: true}
+    - {path: "{{ odoo_addons_path }}", when: true}
+
+- name: Ensure odoo traefik labels are installed
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ odoo_uid }}"
+    group: "{{ odoo_gid }}"
+    mode: 0640
+  with_items:
+    - {src: "{{ role_path }}/templates/labels.j2", dest: "{{ odoo_base_path }}/labels"}
+
+- name: Ensure odoo configuration is deployed
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ odoo_uid }}"
+    group: "{{ odoo_gid }}"
+    mode: 0640
+  with_items:
+    - {src: "{{ role_path }}/templates/env.j2", dest: "{{ odoo_base_path }}/env"}
+    - {src: "{{ role_path }}/templates/odoo.conf.j2", dest: "{{ odoo_config_path }}"}
+
+- name: Ensure odoo container image is pulled
+  community.docker.docker_image:
+    name: "{{ item.image }}"
+    source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
+  with_items:
+    - {image: "{{ odoo_container_image }}"}
+
+- name: Ensure odoo.service installed
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: 0644
+  with_items:
+    - {src: "{{ role_path }}/templates/systemd/odoo.service.j2", dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ odoo_identifier }}.service"}

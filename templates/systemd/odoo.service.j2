@@ -1,0 +1,50 @@
+[Unit]
+Description=Odoo ({{ odoo_identifier }})
+{% for service in odoo_systemd_required_services_list %}
+Requires={{ service }}
+After={{ service }}
+{% endfor %}
+DefaultDependencies=no
+
+[Service]
+Type=simple
+ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} stop --time={{ devture_systemd_docker_base_container_stop_grace_time_seconds }} {{ odoo_identifier }} 2>/dev/null || true'
+ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ odoo_identifier }} 2>/dev/null || true'
+
+ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
+			--rm \
+			--name={{ odoo_identifier }} \
+			--log-driver=none \
+			--user={{ odoo_uid }}:{{ odoo_gid }} \
+			--cap-drop=ALL \
+			--read-only \
+			--network={{ odoo_container_network }} \
+			{% if odoo_container_http_host_bind_port %}
+			-p {{ odoo_container_http_host_bind_port }}:{{ odoo_container_http_port }} \
+			{% endif %}
+			{% if odoo_container_websocket_host_bind_port %}
+			-p {{ odoo_container_websocket_host_bind_port }}:{{ odoo_container_websocket_port }} \
+			{% endif %}
+			--env-file={{ odoo_env_path }} \
+			--label-file={{ odoo_base_path }}/labels \
+			--health-interval={{ odoo_container_health_interval }} \
+			--mount type=bind,src={{ odoo_config_path }},dst=/etc/odoo/odoo.conf,ro=true \
+			--mount type=bind,src={{ odoo_data_path }},dst=/var/lib/odoo \
+			--mount type=bind,src={{ odoo_addons_path }},dst=/mnt/extra-addons \
+			--tmpfs=/tmp:rw,noexec,nosuid,size=100m \
+			{{ odoo_container_image }}
+
+{% for network in odoo_container_additional_networks %}
+ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ odoo_identifier }}
+{% endfor %}
+
+ExecStart={{ devture_systemd_docker_base_host_command_docker }} start --attach {{ odoo_identifier }}
+
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} stop --time={{ devture_systemd_docker_base_container_stop_grace_time_seconds }} {{ odoo_identifier }} 2>/dev/null || true'
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ odoo_identifier }} 2>/dev/null || true'
+Restart=always
+RestartSec=30
+SyslogIdentifier={{ odoo_identifier }}
+
+[Install]
+WantedBy=multi-user.target

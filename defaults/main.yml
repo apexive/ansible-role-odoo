@@ -1,0 +1,202 @@
+---
+# Project source code URL: https://github.com/odoo/odoo
+
+odoo_enabled: true
+odoo_identifier: odoo
+
+odoo_version: "16.0"
+
+odoo_hostname: ''
+odoo_database: ''
+odoo_routers:
+  - hostname: "{{ odoo_hostname }}"
+    dbfilter: "{{ odoo_database }}"
+
+odoo_user: 'odoo'
+odoo_group: 'odoo'
+odoo_uid: '101'
+odoo_gid: '101'
+
+odoo_base_path: "/{{ odoo_identifier }}"
+odoo_data_path: "{{ odoo_base_path }}/data"
+odoo_config_path: "{{ odoo_base_path }}/conf/odoo.conf"
+odoo_addons_path: "{{ odoo_base_path }}/addons"
+odoo_env_path: "{{ odoo_base_path }}/env"
+
+odoo_admin_password: ''
+odoo_admin_ip_whitelist: 0.0.0.0/0
+
+odoo_database_hostname: ''
+odoo_database_port: 5432
+odoo_database_name: odoo
+odoo_database_username: ''
+odoo_database_password: ''
+odoo_database_sslmode: disable
+
+odoo_redis_hostname: ''
+odoo_redis_port: 6379
+odoo_redis_database: 11
+odoo_redis_username: ''
+odoo_redis_password: ''
+odoo_redis_url: "redis://{{ odoo_redis_hostname }}:{{ odoo_redis_port }}/{{ odoo_redis_database }}"
+
+odoo_environment_variables_extension: ''
+odoo_container_network: '{{ odoo_identifier }}'
+
+
+# Must be one of debug, info, warning, error, critical
+odoo_loglevel: WARN
+
+odoo_container_image: "{{ odoo_container_image_registry_prefix }}/odoo:{{ odoo_container_image_tag }}"
+odoo_container_image_registry_prefix: ''
+odoo_container_image_tag: "{{ odoo_version }}"
+odoo_container_image_force_pull: "{{ odoo_container_image.endswith(':latest') }}"
+
+# List of systemd services that odoo-api.service depends on
+odoo_systemd_required_services_list: "{{ odoo_systemd_required_services_list_default + odoo_systemd_required_services_list_auto + odoo_systemd_required_services_list_custom }}"
+odoo_systemd_required_services_list_default: ['docker.service']
+odoo_systemd_required_services_list_auto: []
+odoo_systemd_required_services_list_custom: []
+
+odoo_container_http_port: 8069
+odoo_container_websocket_port: 8072
+
+# Controls whether the odoo container exposes its HTTP port (as defined by `odoo_container_http_port`).
+#
+# Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:8731"), or empty string to not expose.
+odoo_container_http_host_bind_port: ""
+odoo_container_websocket_host_bind_port: ""
+
+# A list of additional container networks that the container would be connected to.
+# The role does not create these networks, so make sure they already exist.
+# Use this to expose this container to another reverse proxy, which runs in a different container network.
+odoo_container_additional_networks: "{{ odoo_container_additional_networks_auto + odoo_container_additional_networks_custom }}"
+odoo_container_additional_networks_auto: []
+odoo_container_additional_networks_custom: []
+
+
+# odoo_container_labels_traefik_enabled controls whether labels to assist a Traefik reverse-proxy will be attached to the container.
+# See `roles/custom/odoo_odoo/templates/labels.j2` for details.
+#
+# To inject your own other container labels, see `odoo_container_labels_additional_labels`.
+odoo_container_labels_traefik_enabled: false
+odoo_container_labels_traefik_docker_network: ""
+odoo_container_labels_traefik_entrypoints: web-secure
+odoo_container_labels_traefik_priority: 0
+odoo_container_labels_traefik_tls: "{{ odoo_container_labels_traefik_entrypoints != 'web' }}"
+odoo_container_labels_traefik_tls_certResolver: default  # noqa var-naming
+
+odoo_container_labels_traefik_hostname: "{{ odoo_hostname }}"
+odoo_container_labels_traefik_rule: "Host(`{{ odoo_container_labels_traefik_hostname }}`)"
+
+# Controls which additional headers to attach to all HTTP requests.
+# To add your own custom request headers, use `odoo_container_labels_traefik_additional_response_headers_custom`
+odoo_container_labels_traefik_additional_request_headers: "{{ odoo_container_labels_traefik_additional_request_headers_auto | combine(odoo_container_labels_traefik_additional_request_headers_custom) }}"
+odoo_container_labels_traefik_additional_request_headers_auto: {}
+odoo_container_labels_traefik_additional_request_headers_custom: {}
+
+
+# Controls which additional headers to attach to all HTTP responses.
+# To add your own custom response headers, use `odoo_container_labels_traefik_additional_response_headers_custom`
+odoo_container_labels_traefik_additional_response_headers: "{{ odoo_container_labels_traefik_additional_response_headers_auto | combine(odoo_container_labels_traefik_additional_response_headers_custom) }}"
+odoo_container_labels_traefik_additional_response_headers_auto: |
+  {{
+    {}
+    | combine ({'X-XSS-Protection': odoo_http_header_xss_protection} if odoo_http_header_xss_protection else {})
+    | combine ({'X-Frame-Options': odoo_http_header_frame_options} if odoo_http_header_frame_options else {})
+    | combine ({'X-Content-Type-Options': odoo_http_header_content_type_options} if odoo_http_header_content_type_options else {})
+    | combine ({'Content-Security-Policy': odoo_http_header_content_security_policy} if odoo_http_header_content_security_policy else {})
+    | combine ({'Permission-Policy': odoo_http_header_content_permission_policy} if odoo_http_header_content_permission_policy else {})
+    | combine ({'Strict-Transport-Security': odoo_http_header_strict_transport_security} if odoo_http_header_strict_transport_security and odoo_container_labels_traefik_tls else {})
+  }}
+odoo_container_labels_traefik_additional_response_headers_custom: {}
+
+# Specifies how often the container health-check will run.
+#
+# For Traefik based setups, it's important that the interval is short,
+# because the interval value also specifies the "initial wait time".
+# This is a Docker (moby) bug: https://github.com/moby/moby/issues/33410
+# Without a successful healthcheck, Traefik will not register the service for reverse-proxying.
+# Thus, the health interval determines the initial start-up time -- the smaller, the better.
+#
+# For non-Traefik setups, we use the default healthcheck interval (60s) to decrease overhead.
+odoo_container_health_interval: "{{ '5s' if odoo_container_labels_traefik_enabled else '60s' }}"
+
+# Specifies the value of the `X-XSS-Protection` header
+# Stops pages from loading when they detect reflected cross-site scripting (XSS) attacks.
+#
+# Learn more about it is here:
+# - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection
+# - https://portswigger.net/web-security/cross-site-scripting/reflected
+odoo_http_header_xss_protection: "1; mode=block"
+
+# Specifies the value of the `X-Frame-Options` header which controls whether framing can happen.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+odoo_http_header_frame_options: SAMEORIGIN
+
+# Specifies the value of the `X-Content-Type-Options` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
+odoo_http_header_content_type_options: nosniff
+
+# Specifies the value of the `Content-Security-Policy` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
+odoo_http_header_content_security_policy: frame-ancestors 'self'
+
+# Specifies the value of the `Permission-Policy` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permission-Policy
+odoo_http_header_content_permission_policy: "{{ 'interest-cohort=()' if odoo_floc_optout_enabled else '' }}"
+
+# Specifies the value of the `Strict-Transport-Security` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+odoo_http_header_strict_transport_security: "max-age=31536000; includeSubDomains{{ '; preload' if odoo_hsts_preload_enabled else '' }}"
+
+# Controls whether to send a "Permissions-Policy interest-cohort=();" header along with all responses
+#
+# Learn more about what it is here:
+# - https://www.eff.org/deeplinks/2021/03/googles-floc-terrible-idea
+# - https://paramdeo.com/blog/opting-your-website-out-of-googles-floc-network
+# - https://amifloced.org/
+#
+# Of course, a better solution is to just stop using browsers (like Chrome), which participate in such tracking practices.
+# See: `odoo_content_permission_policy`
+odoo_floc_optout_enabled: true
+
+# Controls if HSTS preloading is enabled
+#
+# In its strongest and recommended form, the [HSTS policy](https://www.chromium.org/hsts) includes all subdomains, and
+# indicates a willingness to be "preloaded" into browsers:
+# `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+# For more information visit:
+# - https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security
+# - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+# - https://hstspreload.org/#opt-in
+# See: `odoo_http_header_strict_transport_security`
+odoo_hsts_preload_enabled: false
+
+
+# odoo_container_labels_additional_labels contains a multiline string with additional labels to add to the container label file.
+# See `roles/custom/collabora_online/templates/labels.j2` for details.
+#
+# Example:
+# odoo_container_labels_additional_labels: |
+#   my.label=1
+#   another.label="here"
+odoo_container_labels_additional_labels: ''
+
+odoo_variables_additional_variables: ''
+
+odoo_config: |
+  [options]
+  addons_path = /mnt/extra-addons
+  admin_passwd = {{ odoo_admin_password }}
+  data_dir = /var/lib/odoo
+  limit_request = 8192
+  limit_time_cpu = 120
+  limit_time_real = 360
+  list_db = True
+  log_handler = :{{ odoo_loglevel }}
+  gevent_port = 8072
+  max_cron_threads = 1
+  proxy_mode = True
+  server_wide_modules = web,dbfilter_from_header
+  workers = 8

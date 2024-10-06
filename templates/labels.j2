@@ -1,0 +1,68 @@
+{% if odoo_container_labels_traefik_enabled %}
+	traefik.enable=true
+	traefik.docker.network={{ odoo_container_labels_traefik_docker_network }}
+
+	traefik.http.middlewares.odoo-admin-ipallowlist.ipallowlist.sourcerange={{ odoo_admin_ip_whitelist }}
+	traefik.http.middlewares.odoo-admin-ipallowlist.ipallowlist.ipstrategy.depth=1
+
+	traefik.http.middlewares.gzip.compress=true
+
+	traefik.http.services.{{ odoo_identifier }}.loadbalancer.server.port={{ odoo_container_http_port }}
+	traefik.http.services.{{ odoo_identifier }}-websocket.loadbalancer.server.port={{ odoo_container_websocket_port }}
+
+	{% set middlewares = [] %}
+
+	{% if odoo_container_labels_traefik_additional_request_headers.keys() | length > 0 %}
+		{% for name, value in odoo_container_labels_traefik_additional_request_headers.items() %}
+			traefik.http.middlewares.{{ odoo_identifier }}-add-request-headers.headers.customrequestheaders.{{ name }}={{ value }}
+		{% endfor %}
+		{% set middlewares = middlewares + [odoo_identifier + '-add-request-headers'] %}
+	{% endif %}
+
+	{% if odoo_container_labels_traefik_additional_response_headers.keys() | length > 0 %}
+		{% for name, value in odoo_container_labels_traefik_additional_response_headers.items() %}
+			traefik.http.middlewares.{{ odoo_identifier }}-add-response-headers.headers.customresponseheaders.{{ name }}={{ value }}
+		{% endfor %}
+		{% set middlewares = middlewares + [odoo_identifier + '-add-response-headers'] %}
+	{% endif %}
+
+	{% for router in odoo_routers %}
+		{% set router_name = router.hostname | replace('.', '-') %}
+
+		traefik.http.middlewares.{{ router_name }}-dbfilter.headers.customrequestheaders.X-Odoo-Dbfilter={{ router.dbfilter }}
+
+		traefik.http.routers.{{ router_name }}-db.entrypoints={{ odoo_container_labels_traefik_entrypoints }}
+		traefik.http.routers.{{ router_name }}-db.middlewares={{ ([router_name + '-dbfilter', 'odoo-admin-ipallowlist'] + middlewares) | join(',') }}
+		traefik.http.routers.{{ router_name }}-db.rule=Host(`{{ router.hostname }}`) && (PathPrefix(`/web/database`) || PathPrefix(`/website/info`))
+		traefik.http.routers.{{ router_name }}-db.service={{ odoo_identifier }}
+		traefik.http.routers.{{ router_name }}-db.tls={{ odoo_container_labels_traefik_tls | to_json }}
+		{% if odoo_container_labels_traefik_tls %}
+			traefik.http.routers.{{ router_name }}-db.tls.certresolver={{ odoo_container_labels_traefik_tls_certResolver }}
+		{% endif %}
+
+		traefik.http.routers.{{ router_name }}-websocket.entrypoints={{ odoo_container_labels_traefik_entrypoints }}
+		traefik.http.routers.{{ router_name }}-websocket.middlewares={{ ([router_name + '-dbfilter'] + middlewares) | join(',') }}
+		traefik.http.routers.{{ router_name }}-websocket.rule=Host(`{{ router.hostname }}`) && (Path(`/longpolling`) || Path(`/websocket`))
+		traefik.http.routers.{{ router_name }}-websocket.service={{ odoo_identifier }}-websocket
+		traefik.http.routers.{{ router_name }}-websocket.tls={{ odoo_container_labels_traefik_tls | to_json }}
+		{% if odoo_container_labels_traefik_tls %}
+			traefik.http.routers.{{ router_name }}-websocket.tls.certresolver={{ odoo_container_labels_traefik_tls_certResolver }}
+		{% endif %}
+
+		traefik.http.routers.{{ router_name }}.entrypoints={{ odoo_container_labels_traefik_entrypoints }}
+		traefik.http.routers.{{ router_name }}.middlewares={{ ([router_name + '-dbfilter', 'gzip'] + middlewares) | join(',') }}
+		traefik.http.routers.{{ router_name }}.rule=Host(`{{ router.hostname }}`)
+		traefik.http.routers.{{ router_name }}.service={{ odoo_identifier }}
+		traefik.http.routers.{{ router_name }}.tls={{ odoo_container_labels_traefik_tls | to_json }}
+		{% if odoo_container_labels_traefik_tls %}
+			traefik.http.routers.{{ router_name }}.tls.certresolver={{ odoo_container_labels_traefik_tls_certResolver }}
+		{% endif %}
+		{% if odoo_container_labels_traefik_priority | int > 0 %}
+			traefik.http.routers.{{ router_name }}.priority={{ odoo_container_labels_traefik_priority }}
+		{% endif %}
+
+	{% endfor %}
+
+{% endif %}
+
+{{ odoo_container_labels_additional_labels }}

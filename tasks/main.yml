@@ -1,0 +1,26 @@
+---
+
+- block:
+    - when: odoo_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
+  tags:
+    - setup-all
+    - setup-odoo
+    - install-all
+    - install-odoo
+
+- block:
+    - when: odoo_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
+  tags:
+    - setup-all
+    - setup-odoo
+    - install-all
+    - install-odoo
+
+- block:
+    - when: not odoo_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
+  tags:
+    - setup-all
+    - setup-odoo
