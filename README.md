@@ -52,6 +52,8 @@ odoo_container_labels_traefik_enabled: true
 odoo_container_labels_traefik_docker_network: "traefik_network"
 odoo_container_labels_traefik_tls_certResolver: default
 
+odoo_cors_allow_origin: https://app.example.com
+
 # Additional networks
 odoo_container_additional_networks:
   - "traefik_network"
