@@ -26,6 +26,15 @@
 		{% set middlewares = middlewares + [odoo_identifier + '-add-response-headers'] %}
 	{% endif %}
 
+	{% if odoo_http_access_control_allow_origin_list %}
+		traefik.http.middlewares.{{ odoo_identifier }}-cors.headers.accesscontrolallowmethods={{ odoo_http_access_control_allow_methods }}
+		traefik.http.middlewares.{{ odoo_identifier }}-cors.headers.accesscontrolallowheaders={{ odoo_http_access_control_allow_headers }}
+		traefik.http.middlewares.{{ odoo_identifier }}-cors.headers.accesscontrolalloworiginlist={{ odoo_http_access_control_allow_origin_list }}
+		traefik.http.middlewares.{{ odoo_identifier }}-cors.headers.accesscontrolmaxage={{ odoo_http_access_control_max_age }}
+		traefik.http.middlewares.{{ odoo_identifier }}-cors.headers.addvaryheader=true
+		{% set middlewares = middlewares + [odoo_identifier + '-cors'] %}
+	{% endif %}
+
 	{% for router in odoo_routers %}
 		{% set router_name = router.hostname | replace('.', '-') %}
 

@@ -122,6 +122,12 @@ odoo_container_labels_traefik_additional_response_headers_custom: {}
 # For non-Traefik setups, we use the default healthcheck interval (60s) to decrease overhead.
 odoo_container_health_interval: "{{ '5s' if odoo_container_labels_traefik_enabled else '60s' }}"
 
+
+odoo_http_access_control_allow_origin_list: ''
+odoo_http_access_control_allow_methods: 'GET,OPTIONS,PUT'
+odoo_http_access_control_allow_headers: '*'
+odoo_http_access_control_max_age: 3600
+
 # Specifies the value of the `X-XSS-Protection` header
 # Stops pages from loading when they detect reflected cross-site scripting (XSS) attacks.
 #
