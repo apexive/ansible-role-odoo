@@ -124,7 +124,7 @@ odoo_container_health_interval: "{{ '5s' if odoo_container_labels_traefik_enable
 
 
 odoo_http_access_control_allow_origin_list: ''
-odoo_http_access_control_allow_methods: 'GET,OPTIONS,PUT'
+odoo_http_access_control_allow_methods: 'GET,OPTIONS,PUT,POST'
 odoo_http_access_control_allow_headers: '*'
 odoo_http_access_control_expose_headers: set-cookie
 odoo_http_access_control_max_age: 3600
