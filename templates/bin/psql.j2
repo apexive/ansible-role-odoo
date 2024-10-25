@@ -1,0 +1,5 @@
+#!/bin/bash
+
+DB="${1:-postgres}"
+
+exec {{ devture_systemd_docker_base_host_command_docker }} exec -ti {{ odoo_identifier }} psql "$DB"

@@ -17,6 +17,7 @@
     - {path: "{{ odoo_data_path }}", when: true}
     - {path: "{{ odoo_base_path }}/conf", when: true}
     - {path: "{{ odoo_addons_path }}", when: true}
+    - {path: "{{ odoo_base_path }}/bin", when: true}
 
 - name: Ensure odoo traefik labels are installed
   ansible.builtin.template:
@@ -38,6 +39,17 @@
   with_items:
     - {src: "{{ role_path }}/templates/env.j2", dest: "{{ odoo_base_path }}/env"}
     - {src: "{{ role_path }}/templates/odoo.conf.j2", dest: "{{ odoo_config_path }}"}
+
+- name: Install utility scripts
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/bin/{{ item }}.j2"
+    dest: "{{ odoo_base_path }}/bin/{{ item }}"
+    mode: 0755
+    owner: "{{ odoo_uid }}"
+    group: "{{ odoo_gid }}"
+  with_items:
+    - psql
+    - run
 
 - name: Ensure odoo container image is pulled
   community.docker.docker_image:
