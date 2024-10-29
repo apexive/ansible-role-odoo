@@ -7,6 +7,10 @@
 
 	traefik.http.middlewares.gzip.compress=true
 
+	# Add WebSocket headers middleware
+	traefik.http.middlewares.{{ odoo_identifier }}-websocket.headers.customrequestheaders.Connection=upgrade
+	traefik.http.middlewares.{{ odoo_identifier }}-websocket.headers.customrequestheaders.Upgrade=websocket
+
 	traefik.http.services.{{ odoo_identifier }}.loadbalancer.server.port={{ odoo_container_http_port }}
 	traefik.http.services.{{ odoo_identifier }}-websocket.loadbalancer.server.port={{ odoo_container_websocket_port }}
 
@@ -52,7 +56,7 @@
 		{% endif %}
 
 		traefik.http.routers.{{ router_name }}-websocket.entrypoints={{ odoo_container_labels_traefik_entrypoints }}
-		traefik.http.routers.{{ router_name }}-websocket.middlewares={{ ([router_name + '-dbfilter'] + middlewares) | join(',') }}
+		traefik.http.routers.{{ router_name }}-websocket.middlewares={{ ([router_name + '-dbfilter', odoo_identifier + '-websocket'] + middlewares) | join(',') }}
 		traefik.http.routers.{{ router_name }}-websocket.rule=Host(`{{ router.hostname }}`) && (Path(`/longpolling`) || Path(`/websocket`))
 		traefik.http.routers.{{ router_name }}-websocket.service={{ odoo_identifier }}-websocket
 		traefik.http.routers.{{ router_name }}-websocket.tls={{ odoo_container_labels_traefik_tls | to_json }}
@@ -77,3 +81,4 @@
 {% endif %}
 
 {{ odoo_container_labels_additional_labels }}
+
