@@ -10,6 +10,9 @@ exec {{ devture_systemd_docker_base_host_command_docker }} run --rm -ti \
 --cap-drop=ALL \
 --read-only \
 --network={{ odoo_container_network }} \
+{% raw %}{% for network in odoo_container_additional_networks %}
+    --network={{ network }} \
+    {% endfor %}{% endraw %}\
 --env-file={{ odoo_env_path }} \
 --mount type=bind,src={{ odoo_config_path }},dst=/etc/odoo/odoo.conf,ro=true \
 --mount type=bind,src={{ odoo_data_path }},dst=/var/lib/odoo \
