@@ -17,6 +17,6 @@ exec {{ devture_systemd_docker_base_host_command_docker }} run --rm -ti \
 --mount type=bind,src={{ odoo_config_path }},dst=/etc/odoo/odoo.conf,ro=true \
 --mount type=bind,src={{ odoo_data_path }},dst=/var/lib/odoo \
 --mount type=bind,src={{ odoo_addons_path }},dst=/mnt/extra-addons \
---tmpfs=/tmp:rw,noexec,nosuid,size=100m \
+--tmpfs=/tmp:rw,noexec,nosuid \
 {{ odoo_container_image }} \
 odoo "$@" --no-http --stop-after-init
