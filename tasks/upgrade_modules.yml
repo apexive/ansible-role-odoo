@@ -18,16 +18,20 @@
   ansible.builtin.shell: "{{ odoo_base_path }}/bin/run -d {{ item }} -u all"
   loop: "{{ odoo_databases }}"
   become: true
-  register: upgrade_results
+  register: current_result
+  loop_control:
+    label: "{{ item }}"
 
-- name: Show upgrade results
+# Display the result of each database immediately after its upgrade
+- name: Show upgrade result for current database
   ansible.builtin.debug:
-    msg: "{{ item.stdout_lines }}"
-  loop: "{{ upgrade_results.results }}"
-  when: item.stdout_lines is defined
+    msg: "Upgrade results for database {{ item.item }}:\n{{ item.stdout_lines | default([]) }}"
+  loop: "{{ [current_result] }}"
+  when: current_result.stdout_lines is defined
 
 - name: Start odoo service
   ansible.builtin.systemd:
     name: "{{ odoo_identifier }}.service"
     state: started
   become: true
+  
