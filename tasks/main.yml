@@ -24,3 +24,11 @@
   tags:
     - setup-all
     - setup-odoo
+
+# New block for upgrading modules
+- block:
+    - when: odoo_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/upgrade_modules.yml"
+  tags:
+    - upgrade-odoo
+    - upgrade-modules

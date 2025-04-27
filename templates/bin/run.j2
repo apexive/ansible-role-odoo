@@ -3,8 +3,19 @@
 # Source environment file to get database credentials
 source {{ odoo_base_path }}/env
 
-# Build the docker command with the same parameters as the systemd service
-exec {{ devture_systemd_docker_base_host_command_docker }} run --rm -ti \
+# Initialize TI variable as empty
+TI=""
+
+# Check if first argument is -ti
+if [ "$1" == "-ti" ]; then
+    # Remove -ti from arguments
+    shift
+    # Set TI variable
+    TI="-ti"
+fi
+
+# Build the docker command with conditional -ti parameter
+exec {{ devture_systemd_docker_base_host_command_docker }} run --rm $TI \
 --name={{ odoo_identifier }}-temp \
 --user={{ odoo_uid }}:{{ odoo_gid }} \
 --cap-drop=ALL \

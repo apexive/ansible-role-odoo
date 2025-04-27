@@ -1,0 +1,33 @@
+---
+
+- name: Extract database filters from odoo_routers
+  ansible.builtin.set_fact:
+    odoo_databases: "{{ odoo_routers | map(attribute='dbfilter') | list }}"
+
+- name: Show databases to be upgraded
+  ansible.builtin.debug:
+    msg: "Will upgrade modules for the following databases: {{ odoo_databases | join(', ') }}"
+
+- name: Stop odoo service
+  ansible.builtin.systemd:
+    name: "{{ odoo_identifier }}.service"
+    state: stopped
+  become: true
+
+- name: Upgrade all modules for each database
+  ansible.builtin.shell: "{{ odoo_base_path }}/bin/run -d {{ item }} -u all"
+  loop: "{{ odoo_databases }}"
+  become: true
+  register: upgrade_results
+
+- name: Show upgrade results
+  ansible.builtin.debug:
+    msg: "{{ item.stdout_lines }}"
+  loop: "{{ upgrade_results.results }}"
+  when: item.stdout_lines is defined
+
+- name: Start odoo service
+  ansible.builtin.systemd:
+    name: "{{ odoo_identifier }}.service"
+    state: started
+  become: true
