@@ -30,7 +30,9 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
 			--health-interval={{ odoo_container_health_interval }} \
 			--mount type=bind,src={{ odoo_config_path }},dst=/etc/odoo/odoo.conf,ro=true \
 			--mount type=bind,src={{ odoo_data_path }},dst=/var/lib/odoo \
+{% if odoo_addons_path %}
 			--mount type=bind,src={{ odoo_addons_path }},dst=/mnt/extra-addons \
+{% endif %}
 			--tmpfs=/tmp:rw,noexec,nosuid,size=100m \
 			{{ odoo_container_image }}
 

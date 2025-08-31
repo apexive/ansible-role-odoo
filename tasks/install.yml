@@ -13,11 +13,12 @@
     mode: 0700
     owner: "{{ odoo_uid }}"
     group: "{{ odoo_gid }}"
-  with_items:
-    - {path: "{{ odoo_data_path }}", when: true}
-    - {path: "{{ odoo_base_path }}/conf", when: true}
-    - {path: "{{ odoo_addons_path }}", when: true}
-    - {path: "{{ odoo_base_path }}/bin", when: true}
+  loop:
+    - {path: "{{ odoo_data_path }}"}
+    - {path: "{{ odoo_base_path }}/conf"}
+    - {path: "{{ odoo_addons_path }}"}
+    - {path: "{{ odoo_base_path }}/bin"}
+  when: item.path != ''
 
 - name: Ensure odoo traefik labels are installed
   ansible.builtin.template:
