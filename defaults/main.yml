@@ -4,7 +4,7 @@
 odoo_enabled: true
 odoo_identifier: odoo
 
-odoo_version: "16.0"
+odoo_version: "18.0"
 
 odoo_hostname: ''
 odoo_database: ''
@@ -207,3 +207,13 @@ odoo_config: |
   proxy_mode = True
   server_wide_modules = web,dbfilter_from_header
   workers = 8
+
+# Register with systemd service manager
+devture_systemd_service_manager_services_list_auto: |
+  {{
+    ([{
+      'name': (odoo_identifier + '.service'),
+      'priority': 2000,
+      'groups': ['odoo']
+    }]) if odoo_enabled else []
+  }}
