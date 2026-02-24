@@ -8,6 +8,7 @@
     - setup-odoo
     - install-all
     - install-odoo
+    - upgrade-odoo
 
 - block:
     - when: odoo_enabled | bool
@@ -17,6 +18,7 @@
     - setup-odoo
     - install-all
     - install-odoo
+    - upgrade-odoo
 
 - block:
     - when: not odoo_enabled | bool
@@ -24,6 +26,19 @@
   tags:
     - setup-all
     - setup-odoo
+
+# Reload systemd after service file installation so upgrade starts the new version
+- block:
+    - name: Ensure systemd daemon is reloaded after odoo service installation
+      ansible.builtin.systemd:
+        daemon_reload: true
+      become: true
+  tags:
+    - setup-all
+    - setup-odoo
+    - install-all
+    - install-odoo
+    - upgrade-odoo
 
 # New block for upgrading modules
 - block:
